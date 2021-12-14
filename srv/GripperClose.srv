@@ -1,0 +1,4 @@
+franka_gripper/GraspGoal grasp_goal # action goal for franka gripper
+---
+bool success # boolean return status
+string error #  completion message

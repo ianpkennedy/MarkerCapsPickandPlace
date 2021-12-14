@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+
+from logging import error
+import moveit_commander
+import moveit_msgs.msg 
+from geometry_msgs.msg import Pose
+from math import pi
+
+import rospy
+
+from group4.srv import DeltaMove, Press, GripperClose, TrayLocationMove, GetMaxWrenches
+from std_srvs.srv import Trigger
+
+"""
+This node presses the marker caps onto each pen.
+
+Services:
+    /press: of type Press.srv presses a cap onto a marker. Relax collisions prior to launching Moveit first
+
+"""
+
+class ManipulationPress:
+    def __init__(self):
+
+        self.robot = moveit_commander.RobotCommander()
+        self.gripper_group_name = "hand"
+        self.gripper = moveit_commander.MoveGroupCommander(self.gripper_group_name)
+
+        self.press_service = rospy.Service("press",Press,self.handle_press)
+        
+        self.delta_move = rospy.ServiceProxy('delta_move',DeltaMove)
+        self.close_gripper = rospy.ServiceProxy('grip_cap', Trigger) 
+        self.open_gripper = rospy.ServiceProxy('release_cap', Trigger)
+        self.go_to_tray_loc = rospy.ServiceProxy("go_to_trayLocation", TrayLocationMove)
+        self.listen_for_max_ext_F = rospy.ServiceProxy('getMax_F_ext', Trigger)
+        self.get_local_max_ext_F = rospy.ServiceProxy('stop_recording_F_ext', GetMaxWrenches)  
+
+
+
+    def handle_press(self,req):
+        """
+        handle_press is the call back that actuates the arm through Moveit to cap the marker
+        Args:
+            location: int32 variable for row major position of the marker to press
+        Return:
+            bool success is the status of the service completion
+            string error message is a string providing info on the status of completion of the service.
+        """
+        
+        ## close gripper then go to press location
+        self.gripper.set_named_target("close")
+        self.gripper.go(wait=True)
+        complete = self.go_to_tray_loc(1,req.location,2,0)
+        success = complete.success
+        msg = "[Report @ CloseGripperAndGotoPressLocation]" + complete.error_msg
+        
+        ## move in z by 5mm to effect press and measure max force
+        ## !!Should verify somehow that press was complete
+        if success:
+            self.listen_for_max_ext_F()
+            dz = -0.006
+            result = self.delta_move(2.0,dz)
+            force_response = self.get_local_max_ext_F()
+            rospy.loginfo("Max External Force:")
+            rospy.loginfo(force_response)
+            if result.result == "Done":
+                success = True
+                error_msg = "Done"
+            else:
+                success = False
+                error_msg = "Failed"
+            msg = "[Report @ Press]" + error_msg
+        
+        ## Raise up to standoff
+        if success:
+            complete = self.go_to_tray_loc(1,req.location,3,0)
+            success = complete.success
+            msg = "[Report @ GoToStandoff]" + complete.error_msg
+        
+        ## Open gripper for subsequent operations
+        if success:
+            complete = self.open_gripper()
+            success = complete.success
+            msg =  "[Report @ OpeningGripper]" + complete.message
+
+        return success, msg
+
+
+def main():
+    """
+    Main function
+    """
+    rospy.init_node('manipulation_press')
+    manipulation_press = ManipulationPress()
+    rospy.spin()
+
+if __name__ == '__main__':
+    main()

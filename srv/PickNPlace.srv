@@ -1,0 +1,5 @@
+int32 pickLocation #Pick and place start location (0-8, row major)
+int32 placeLocation #Pick and place end location (0-8, row major)
+---
+bool result # boolean failure/success
+string error_msg # string reported status
