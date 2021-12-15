@@ -1,5 +1,16 @@
 # Group4 - Picking, placing, sorting, and pressing markers and caps
 
+My role in this project was focused around the manipulation of caps and markers and movement of the robot.
+
+RVIZ simulation:
+
+![alt-text](https://github.com/ianpkennedy/ROS_Navigation_SLAM/blob/main/explore_real.gif)
+
+
+Real demo:
+
+![alt-text](https://github.com/ianpkennedy/ROS_Navigation_SLAM/blob/main/explore_real.gif)
+
 The goal of this project was to assemble markers and caps together through sequences of pick, place, press and sort operations. The intent was largely inspired by the application of robots in manufacturing and industry. Our project used a RealSense camera to detect colors of the markers, and MoveIt manipulation commands to actuate the robot. Franka-specific actions also were used to grip caps and markers during movement. The framework of the project was controlled using a state machine developed in the ROS package called SMACH. The state machine intelligence implemented sorting of colors by hue based off of camera data coming from the realsense perception subsystem. Intelligence then leveraged the manipulation to pick, place and press caps and markers in the assembly tray. THe  launch files custom to this project are launch_robot.launch (master launch file) and planning_sim.launch (simulation launch file for motion planning in).
 Ensure that the panda_moveit_config and the franka_control packages are sourced and configured as detailed here: https://nu-msr.github.io/me495_site/franka.html
 
